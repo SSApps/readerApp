@@ -18,10 +18,10 @@
 using namespace std;
 using namespace cv;
 
-@interface ViewController ()<CvVideoCameraDelegate>
+@interface ViewController ()//<CvVideoCameraDelegate>
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
 @property (nonatomic) UIImage * image;
-@property (nonatomic, strong) CvVideoCamera * videoCamera;
+ //@property (nonatomic, strong) CvVideoCamera * videoCamera;
 @end
 
 @implementation ViewController
@@ -41,16 +41,41 @@ int max_Trackbar;
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
+//    self.videoCamera = [[CvVideoCamera alloc]initWithParentView:self.imageView];
+//    self.videoCamera.delegate = self;
+//    self.videoCamera.defaultAVCaptureDevicePosition = AVCaptureDevicePositionBack;
+//    self.videoCamera.defaultAVCaptureVideoOrientation = AVCaptureVideoOrientationPortrait;
+//    self.videoCamera.defaultAVCaptureSessionPreset = AVCaptureSessionPresetMedium;
+//    self.videoCamera.defaultFPS = 30;
+    
+    
+    
+    
     
     // max_Trackbar = 5;
-    match_method = 5;
+    match_method = 3;
     
-    self.image = [UIImage imageNamed:@"sample2.png"];//self.image = [UIImage imageNamed:@"original.png"];
+    self.image = [UIImage imageNamed:@"sample.png"];
+    //self.imageView setImage:self.image];
     img = [self cvMatFromUIImage:self.image];
     cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
-    cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 115, 1);
+    cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 115, 1);
+    
+    cv::Mat kernel;
+  
+    //kernel = cv::Mat::ones(15 , 15, CV_32F);
+    //cv::morphologyEx(img, img, cv::MORPH_CLOSE, kernel);
     
     
+    kernel = cv::Mat::ones(15 , 15, CV_32F);
+    //cv::erode(img, img, kernel);
+    kernel = cv::Mat::ones(30 , 20, CV_32F);
+    //cv::dilate(img, img, kernel);
+    //cv::GaussianBlur(img, img, cv::Size(1,15), 0);
+    kernel = cv::Mat::ones(15 , 15, CV_32F);
+    //cv::morphologyEx(img, img, cv::MORPH_OPEN, kernel);
+    
+    //cv::medianBlur(img, img, 15);
 //    for(int i = 0; i < 10; i++){
 //        self.image = [UIImage imageNamed:[NSString stringWithFormat:@"%d.png",i]];
 //        templ[i] = [self cvMatFromUIImage:self.image];
@@ -65,30 +90,49 @@ int max_Trackbar;
     
     
     
-    cout<<"done";
+    cout<<"done"<<endl;
 
 }
 
 -(void)viewDidAppear:(BOOL)animated{
     
     
-    for(int i = 9; i > 0; i--){
+    for(int i = 0; i < 10; i++){
         self.image = [UIImage imageNamed:[NSString stringWithFormat:@"%d.png",i]];
         templ[i] = [self cvMatFromUIImage:self.image];
         
         
         cv::cvtColor(templ[i], templ[i], cv::COLOR_BGR2GRAY);
-        cv::adaptiveThreshold(templ[i], templ[i], 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 115, 1);
-        [self MatchingMethodwithTemplateIndex:i];
+        cv::adaptiveThreshold(templ[i], templ[i], 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 115, 1);
+        
+        //[self MatchingMethodwithTemplateIndex:i];
+        //img = [self cvMatFromUIImage:self.imageView.image];
+
     }
+    float fx = 1.0, fy = 1.0;
+    for(int i = 0; i < 10; i++){
+        
+            cv::resize(img, img, cv::Size(img.cols * fx, img.rows * fy), 0, 0, CV_INTER_LINEAR);
+            if( !(templ[i].rows >= img.rows ||templ[i].cols >= img.cols )){
+                [self MatchingMethodwithTemplateIndex:i];
+            }
+        if(i <=8){
+            fx = fx - (fx * 0.2);
+            fy = fy - (fy * 0.2);
+        }
+    }
+    
+   // [self.videoCamera start];
     
 }
 
--(void)processImage:(cv::Mat &)image{
-  
-    [self.videoCamera start];
-
-}
+//-(void)processImage:(cv::Mat &)image{
+//  
+////    for(int i = 9; i > 0; i--)
+////        [self MatchingMethodwithTemplateIndex:i];
+////    img = [self cvMatFromUIImage:self.imageView.image];
+//
+//}
 
 - (void)MatchingMethodwithTemplateIndex:(int)index
 {
@@ -129,7 +173,7 @@ int max_Trackbar;
     
         if(maxVal >= threshold){
         /// Show me what you got
-            rectangle( img, matchLoc, cv::Point( matchLoc.x + templ[index].cols , matchLoc.y + templ[index].rows ), Scalar(0,255,0), 10, 8, 0 );
+            rectangle( img, matchLoc, cv::Point( matchLoc.x + templ[index].cols , matchLoc.y + templ[index].rows ), Scalar(0,255,0), 5, 8, 0 );
             //cv::cvtColor(img_display, img_display, cv::COLOR_BGRA2BGR);
     
             cv::floodFill(result, maxLoc, cv::Scalar(0),0, cv::Scalar(0.1), cvScalar(1.0));
@@ -138,7 +182,7 @@ int max_Trackbar;
             UIImage * retImg = [self UIImageFromCVMat:img];
             
             [self.imageView setImage: retImg];
-    
+            cout<<"match"<<index<<endl;
         }
         else{
             break;
